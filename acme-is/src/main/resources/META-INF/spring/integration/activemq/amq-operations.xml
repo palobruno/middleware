@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:int-stream="http://www.springframework.org/schema/integration/stream"
+	xmlns:int-jms="http://www.springframework.org/schema/integration/jms"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+		http://www.springframework.org/schema/integration/stream http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd
+		http://www.springframework.org/schema/integration/jms http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd">
+
+	<!-- Default poller -->
+	<!-- ToDo: tiene que ser event-driven consumer -->
+	<int:poller default="true" fixed-rate="100" />
+
+	<bean id="colaEntrada" class="org.apache.activemq.command.ActiveMQQueue">
+		<constructor-arg value="middleware-queue-in" />
+	</bean>
+
+	<int-jms:inbound-channel-adapter id="colaPagosInAdapter" destination="colaEntrada" channel="xmlPagosInChan" />
+	<int:channel id="xmlPagosInChan" />
+
+	<!-- ToDo: pendiente, el router tiene que ser con XPath, el splitter capaz 
+		puede ser con XPath también -->
+	<int:chain input-channel="xmlPagosInChan">
+		<int:splitter expression="payload.items" apply-sequence="true" />
+		<int:router expression="true ? 'newBankWsChan' : 'oldBankChan'" />
+	</int:chain>
+
+	<int:channel id="xmlToSoapTransformerChan" />
+	<int:channel id="newBankWsChan" />
+
+	<int:chain input-channel="newBankWsChan" output-channel="normalizerChan">
+<!-- 		<int-ws:header-enricher>
+			<ws:soap-action value="http://www.w3schools.com/xml/FahrenheitToCelsius"/>
+		</int-ws:header-enricher>
+		<int-ws:outbound-gateway uri="http://www.w3schools.com/xml/tempconvert.asmx"/> -->
+	</int:chain>
+	<int:channel id="normalizerChan" />
+
+	<int:chain input-channel="normalizerChan" output-channel="aggregatorChan">
+
+	</int:chain>
+	<int:channel id="aggregatorChan" />
+	
+	<int:chain input-channel="aggregatorChan" output-channel="xmlPagosOutChan">
+
+	</int:chain>
+	<int:channel id="xmlPagosOutChan" />
+
+	<bean id="coldSalida" class="org.apache.activemq.command.ActiveMQQueue">
+		<constructor-arg value="middleware-queue-out" />
+	</bean>
+	
+	<int-jms:outbound-channel-adapter id="colaPagosOutAdapter" destination="coldSalida" channel="xmlPagosOutChan" />
+	
+</beans>
