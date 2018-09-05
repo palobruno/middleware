@@ -11,8 +11,6 @@
 		http://www.springframework.org/schema/integration/stream http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd
 		http://www.springframework.org/schema/integration/jms http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd
 		http://www.springframework.org/schema/integration/ws http://www.springframework.org/schema/integration/ws/spring-integration-ws.xsd">
-
-	<bean id="queryProvider" class="org.springframework.integration.jdbc.store.channel.PostgresChannelMessageStoreQueryProvider"/>
 	
 	<!-- Default poller -->
 	<!-- ToDo: tiene que ser event-driven consumer -->
@@ -32,9 +30,9 @@
 	</int:chain>
 	<int:channel id="xmlToSoapTransformerChan" />
 	
-	<int:transformer id="xmlToSoapTransformer" ref="xmlToSoapTransformerBean" input-channel="xmlToSoapTransformerChan"
-		method="transform" output-channel="newBankWsChan" />
-	<bean id="xmlToSoapTransformerBean" class="com.acme.is.XmlToSoapTransformer" />
+	<int:transformer id="xmlToSoapTransformer" ref="xmlSoapTransformerBean" input-channel="xmlToSoapTransformerChan"
+		method="xmlToSoap" output-channel="newBankWsChan" />
+	<bean id="xmlSoapTransformerBean" class="com.acme.is.XmlSoapTransformer" />
 	<int:channel id="newBankWsChan" />
 
 	<int-ws:outbound-gateway id="newBankWsGateway" request-channel="newBankWsChan"
@@ -51,9 +49,8 @@
 	</int-xml:xpath-router>
 -->
 
-	<int:transformer id="soapToXmlTransformer" ref="soapToXmlTransformerBean" input-channel="soapToXmlTransformerChan"
-		method="transform" output-channel="aggregatorChan" />
-	<bean id="soapToXmlTransformerBean" class="com.acme.is.SoapToXmlTransformer" />
+	<int:transformer id="soapToXmlTransformer" ref="xmlSoapTransformerBean" input-channel="soapToXmlTransformerChan"
+		method="soapToXml" output-channel="aggregatorChan" />
 	
 	<int:channel id="aggregatorChan" />
 
