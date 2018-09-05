@@ -9,15 +9,23 @@
 	<groupId>com.acme.is</groupId>
 	<artifactId>acme-is</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	
+
 	<name>acme-is</name>
 	<description>Lab1 de Middleware</description>
-	
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<java.version>1.8</java.version>
-	</properties>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.8.0</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 
 	<dependencies>
 		<dependency>
@@ -49,6 +57,7 @@
 			<version>2.7</version>
 			<scope>compile</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
@@ -71,6 +80,11 @@
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-test</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.integration</groupId>
+			<artifactId>spring-integration-ws</artifactId>
+			<scope>compile</scope>
 			<exclusions>
 				<exclusion>
 					<artifactId>jackson-module-kotlin</artifactId>
@@ -79,7 +93,8 @@
 			</exclusions>
 		</dependency>
 	</dependencies>
-	
+
+
 	<repositories>
 		<repository>
 			<id>repo.spring.io.milestone</id>
@@ -92,7 +107,7 @@
 			<url>https://repo.spring.io/libs-snapshot</url>
 		</repository>
 	</repositories>
-	
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -111,5 +126,5 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
-	
+
 </project>
