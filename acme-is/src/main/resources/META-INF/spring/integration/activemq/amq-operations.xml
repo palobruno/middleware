@@ -2,87 +2,109 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns:int="http://www.springframework.org/schema/integration"
-	xmlns:int-stream="http://www.springframework.org/schema/integration/stream"
 	xmlns:int-jms="http://www.springframework.org/schema/integration/jms"
 	xmlns:int-ws="http://www.springframework.org/schema/integration/ws"
+	xmlns:int-xml="http://www.springframework.org/schema/integration/xml"
+	xmlns:int-stream="http://www.springframework.org/schema/integration/stream"
+	xmlns:util="http://www.springframework.org/schema/util"
 	xsi:schemaLocation="
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
-		http://www.springframework.org/schema/integration/stream http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd
 		http://www.springframework.org/schema/integration/jms http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd
-		http://www.springframework.org/schema/integration/ws http://www.springframework.org/schema/integration/ws/spring-integration-ws.xsd">
-	
-	<!-- Default poller -->
-	<!-- ToDo: tiene que ser event-driven consumer -->
-	<int:poller default="true" fixed-rate="100" />
+		http://www.springframework.org/schema/integration/ws http://www.springframework.org/schema/integration/ws/spring-integration-ws.xsd
+		http://www.springframework.org/schema/integration/xml
+    	http://www.springframework.org/schema/integration/xml/spring-integration-xml.xsd
+    	http://www.springframework.org/schema/integration/stream http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd
+    	http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
-	<bean id="colaEntrada" class="org.apache.activemq.command.ActiveMQQueue">
+	<bean id="colaEntrada"
+		class="org.apache.activemq.command.ActiveMQQueue">
 		<constructor-arg value="middleware-queue-in" />
 	</bean>
 
-	<int-jms:inbound-channel-adapter id="colaPagosInAdapter" destination="colaEntrada" channel="xmlPagosInChan" />
+	<int-jms:message-driven-channel-adapter
+		id="colaPagosInAdapter" destination="colaEntrada"
+		channel="xmlPagosInChan" />
 	<int:channel id="xmlPagosInChan" />
+	
+	<util:properties id="splitterOutProperties">
+		<prop key="#{T (javax.xml.transform.OutputKeys).OMIT_XML_DECLARATION}">yes</prop>
+	</util:properties>
 
-	<!-- ToDo: pendiente, el router tiene que ser con XPath, el splitter capaz  puede ser con XPath también -->
 	<int:chain input-channel="xmlPagosInChan">
-		<int:splitter expression="payload.items" apply-sequence="true" />
-		<int:router expression="true ? 'xmlToSoapTransformerChan' : (true ? 'xmlToCsvTransformerChan' : 'xmlToSqlTransformerChan')" />
+		
+		<int-xml:xpath-splitter id="paymentsInSplitter" output-properties="splitterOutProperties">
+			<int-xml:xpath-expression expression="/paymentList/payment" />
+		</int-xml:xpath-splitter>
+
+		<!-- Descomentar para imprimir la salida del splitter -->
+		<!-- <int-stream:stdout-channel-adapter id="stdout"/> -->
+
+		<!-- <int:router expression="true ? 'xmlToSoapTransformerChan' : (true 
+			? 'xmlToCsvTransformerChan' : 'xmlToSqlTransformerChan')" /> -->
+
 	</int:chain>
 	<int:channel id="xmlToSoapTransformerChan" />
-	
-	<int:transformer id="xmlToSoapTransformer" ref="xmlSoapTransformerBean" input-channel="xmlToSoapTransformerChan"
+
+	<int:channel id="paymentsInSplitter">
+		<int:interceptors>
+			<int:wire-tap channel="logger" />
+		</int:interceptors>
+	</int:channel>
+
+	<int:logging-channel-adapter id="logger" level="DEBUG" />
+
+	<int:transformer id="xmlToSoapTransformer"
+		ref="xmlSoapTransformerBean" input-channel="xmlToSoapTransformerChan"
 		method="xmlToSoap" output-channel="newBankWsChan" />
-	<bean id="xmlSoapTransformerBean" class="com.acme.is.XmlSoapTransformer" />
+	<bean id="xmlSoapTransformerBean"
+		class="com.acme.is.XmlSoapTransformer" />
 	<int:channel id="newBankWsChan" />
 
-	<int-ws:outbound-gateway id="newBankWsGateway" request-channel="newBankWsChan"
-		uri="http://localhost:8080/NewBankPagosWS/" reply-channel="normalizerRouterChan"/>
+	<int-ws:outbound-gateway id="newBankWsGateway"
+		request-channel="newBankWsChan"
+		uri="http://localhost:8080/NewBankPagosWS/"
+		reply-channel="normalizerRouterChan" />
 	<int:channel id="normalizerRouterChan" />
 
-	<int:router id="normalizerRouter" input-channel="normalizerRouterChan"
+	<int:router id="normalizerRouter"
+		input-channel="normalizerRouterChan"
 		expression="true ? 'soapToXmlTransformerChan' : (true ? 'csvToXmlTransformerChan' : 'sqlToXmlTransformerChan')" />
 	<int:channel id="soapToXmlTransformerChan" />
-	
-<!-- El router tiene que ser XPath, recordar agregar el namespace necesario arriba, lo comenté pq me tiraba un error raro
- 	<int-xml:xpath-router id="normalizerRouter" input-channel="normalizerRouterChan">
-    	<int-xml:xpath-expression expression="/order/type"/>
-	</int-xml:xpath-router>
--->
 
-	<int:transformer id="soapToXmlTransformer" ref="xmlSoapTransformerBean" input-channel="soapToXmlTransformerChan"
+	<!-- El router tiene que ser XPath, recordar agregar el namespace necesario 
+		arriba, lo comenté pq me tiraba un error raro <int-xml:xpath-router id="normalizerRouter" 
+		input-channel="normalizerRouterChan"> <int-xml:xpath-expression expression="/order/type"/> 
+		</int-xml:xpath-router> -->
+
+	<int:transformer id="soapToXmlTransformer"
+		ref="xmlSoapTransformerBean" input-channel="soapToXmlTransformerChan"
 		method="soapToXml" output-channel="aggregatorChan" />
-	
+
 	<int:channel id="aggregatorChan" />
 
-<!--
-	<int:aggregator id="completelyDefinedAggregator"
-	    input-channel="aggregatorChan"
-	    output-channel="xmlPagosOutChan"
-	    ref="aggregatorBean"
-	    method="add"
-	    release-strategy="releaseStrategyBean" 
-	    release-strategy-method="canRelease"
-	    correlation-strategy="correlationStrategyBean"
-	    correlation-strategy-method="groupNumbersByLastDigit"
-	    message-store="messageStore"
-	    send-partial-result-on-expiry="true"
-	    send-timeout="86420000" />
-	
-	<bean id="aggregatorBean" class="sample.PojoAggregator"/>
-	<bean id="releaseStrategyBean" class="sample.PojoReleaseStrategy"/>
-	<bean id="correlationStrategyBean" class="sample.PojoCorrelationStrategy"/>
--->
-	    
-    <int:aggregator id="pagosOutAggregator" input-channel="aggregatorChan"
-        output-channel="xmlPagosOutChan" correlation-strategy-expression="payload.type"
-        release-strategy-expression="size() ==2" />
-	   
+	<!-- <int:aggregator id="completelyDefinedAggregator" input-channel="aggregatorChan" 
+		output-channel="xmlPagosOutChan" ref="aggregatorBean" method="add" release-strategy="releaseStrategyBean" 
+		release-strategy-method="canRelease" correlation-strategy="correlationStrategyBean" 
+		correlation-strategy-method="groupNumbersByLastDigit" message-store="messageStore" 
+		send-partial-result-on-expiry="true" send-timeout="86420000" /> <bean id="aggregatorBean" 
+		class="sample.PojoAggregator"/> <bean id="releaseStrategyBean" class="sample.PojoReleaseStrategy"/> 
+		<bean id="correlationStrategyBean" class="sample.PojoCorrelationStrategy"/> -->
+
+	<int:aggregator id="pagosOutAggregator"
+		input-channel="aggregatorChan" output-channel="xmlPagosOutChan"
+		correlation-strategy-expression="payload.type"
+		release-strategy-expression="size() ==2" />
+
 	<int:channel id="xmlPagosOutChan" />
 
-	<bean id="colaSalida" class="org.apache.activemq.command.ActiveMQQueue">
+	<bean id="colaSalida"
+		class="org.apache.activemq.command.ActiveMQQueue">
 		<constructor-arg value="middleware-queue-out" />
 	</bean>
-	
-	<int-jms:outbound-channel-adapter id="colaPagosOutAdapter" destination="colaSalida" channel="xmlPagosOutChan" />
-	
+
+	<int-jms:outbound-channel-adapter
+		id="colaPagosOutAdapter" destination="colaSalida"
+		channel="xmlPagosOutChan" />
+
 </beans>
