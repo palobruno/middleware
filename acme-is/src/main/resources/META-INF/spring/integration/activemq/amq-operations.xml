@@ -32,17 +32,20 @@
 	</util:properties>
 
 	<int:chain input-channel="xmlPagosInChan">
-		
 		<int-xml:xpath-splitter id="paymentsInSplitter" output-properties="splitterOutProperties">
 			<int-xml:xpath-expression expression="/paymentList/payment" />
 		</int-xml:xpath-splitter>
 
 		<!-- Descomentar para imprimir la salida del splitter -->
-		<!-- <int-stream:stdout-channel-adapter id="stdout"/> -->
-
-		<!-- <int:router expression="true ? 'xmlToSoapTransformerChan' : (true 
-			? 'xmlToCsvTransformerChan' : 'xmlToSqlTransformerChan')" /> -->
-
+		<!--int-stream:stdout-channel-adapter id="stdout"/-->
+	
+		<int-xml:xpath-router id="paymentRouter">
+		    <int-xml:xpath-expression expression="/payment/bank"/>
+		    <int-xml:mapping value="2" channel="xmlToSoapTransformerChan"/>
+		    
+		    <!--int-xml:mapping value="1" channel="xmlToSqlTransformerChan"/-->
+		    <!--int-xml:mapping value="3" channel="xmlToCsvTransformerChan"/-->
+		</int-xml:xpath-router>
 	</int:chain>
 	<int:channel id="xmlToSoapTransformerChan" />
 
