@@ -125,6 +125,15 @@
 	<int:transformer id="soapToXmlTransformer"
 		ref="xmlSoapTransformerBean" input-channel="soapToXmlTransformerChan"
 		method="soapToXml" output-channel="aggregatorChan" />
+		
+	<int:channel id="aggregatorChan" />
+	
+	<int:transformer id="csvToXmlTransformer"
+		ref="csvToXmlTransformerBean" input-channel="csvToXmlTransformerChan"
+		method="csvToXml" output-channel="aggregatorChan" />
+		
+	<bean id="csvToXmlTransformerBean"
+		class="com.acme.is.CsvToXmlTransformer" />
 
 	<int:channel id="aggregatorChan" />
 
