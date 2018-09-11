@@ -45,13 +45,8 @@ public class PaymentsSplitter extends AbstractMessageSplitter {
 		try {
 			xmlDocument = loadXMLFromString(paymentListStr);
 			XPath xPath = XPathFactory.newInstance().newXPath();
-
-			//ToDo: es probable que el aggregator necesite cantidad de bancos presentes en pago inicial en lugar de cantidad de pagos totales
-			int seqSize = Math.toIntExact((Math.round((Double) xPath.compile("count(/paymentList/payment)")
-					.evaluate(xmlDocument, XPathConstants.NUMBER))));
-
-			long corrId = Integer.parseInt(
-					(String) xPath.compile("string(/paymentList/id)").evaluate(xmlDocument, XPathConstants.STRING));
+			
+			long packRefId = Integer.parseInt((String) xPath.compile("string(/paymentList/id)").evaluate(xmlDocument, XPathConstants.STRING));
 
 			for (int i = 1; i <= 3; i++) {
 				String bankiMsg = "";
@@ -62,8 +57,7 @@ public class PaymentsSplitter extends AbstractMessageSplitter {
 						bankiMsg += nodeToString(nodeList.item(j));
 					}
 					Message<String> msg = MessageBuilder.withPayload(bankiMsg)
-							.setHeaderIfAbsent(IntegrationMessageHeaderAccessor.CORRELATION_ID, corrId)
-							.setHeaderIfAbsent(IntegrationMessageHeaderAccessor.SEQUENCE_SIZE, seqSize).build();
+							.setHeader("packRefId", packRefId).build();
 					messages.add(msg);
 				}
 			}
