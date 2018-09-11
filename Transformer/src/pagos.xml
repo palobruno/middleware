@@ -1,0 +1,33 @@
+<paymentList>
+	<id>1234567892</id>
+    <payment>
+        <referenceNumber>123456789</referenceNumber>
+        <datetime>12/08/2018 11:22:33</datetime>
+        <currency>858</currency>
+        <amount>1009.89</amount>
+        <bank>1</bank>
+        <originAccout>121-123456</originAccout>
+        <destinationAccount>121-765432</destinationAccount>
+        <additionalInformation>Pago de haberes de 4.290.798-1</additionalInformation>
+    </payment>
+    <payment>
+        <referenceNumber>123456789</referenceNumber>
+        <datetime>12/08/2018 11:22:33</datetime>
+        <currency>848</currency>
+        <amount>100.65</amount>
+        <bank>2</bank>
+        <originAccout>151-123456</originAccout>
+        <destinationAccount>121-765432</destinationAccount>
+        <additionalInformation>Pago de haberes de 4.290.799-7</additionalInformation>
+    </payment>
+    <payment>
+        <referenceNumber>123456789</referenceNumber>
+        <datetime>12/08/2018 11:22:33</datetime>
+        <currency>848</currency>
+        <amount>100.65</amount>
+        <bank>3</bank>
+        <originAccout>151-123456</originAccout>
+        <destinationAccount>121-765432</destinationAccount>
+        <additionalInformation>Pago de haberes de 4.290.799-7</additionalInformation>
+    </payment>
+</paymentList>
