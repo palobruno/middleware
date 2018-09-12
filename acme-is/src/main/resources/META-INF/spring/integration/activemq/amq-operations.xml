@@ -71,9 +71,22 @@
 	<int-file:outbound-channel-adapter
 		id="filesOut"
 		filename-generator-expression="headers['packRefId']+'.csv'" 
-		directory="file:target/output/PAYOUT" />
+		directory="file:target/output/PAYIN" />
 
 	<bean id="fileHandler" class="com.acme.is.FileOutHandler" />
+
+	<int-file:inbound-channel-adapter id="fileIn"
+			directory="file:target/output/PAYOUT"
+			filename-regex="[0-9]+.csv">
+		<int:poller id="poller" fixed-delay="5000"/>
+	</int-file:inbound-channel-adapter>
+ 
+	<int:header-enricher input-channel="fileIn" output-channel="fileToStringTrans">
+		<int:header name="packRefId" expression="payload.name"/>
+	</int:header-enricher>
+	
+	<int:channel id="fileToStringTrans"/>
+	<int-file:file-to-string-transformer input-channel="fileToStringTrans" output-channel="normalizerRouterChan"/>
 
 	<int:router id="normalizerRouter"
 		input-channel="normalizerRouterChan"
