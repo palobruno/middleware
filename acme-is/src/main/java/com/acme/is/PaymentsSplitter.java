@@ -49,13 +49,14 @@ public class PaymentsSplitter extends AbstractMessageSplitter {
 			long packRefId = Integer.parseInt((String) xPath.compile("string(/paymentList/id)").evaluate(xmlDocument, XPathConstants.STRING));
 
 			for (int i = 1; i <= 3; i++) {
-				String bankiMsg = "";
+				String bankiMsg = "<paymentList>\n\t";
 				String expr = "/paymentList/payment[bank=" + i + "]";
 				NodeList nodeList = (NodeList) xPath.compile(expr).evaluate(xmlDocument, XPathConstants.NODESET);
 				if (nodeList.getLength() > 0) {
 					for (int j = 0; j < nodeList.getLength(); j++) {
-						bankiMsg += nodeToString(nodeList.item(j));
+						bankiMsg += nodeToString(nodeList.item(j)) + "\n\t";
 					}
+					bankiMsg += "</paymentList>";
 					Message<String> msg = MessageBuilder.withPayload(bankiMsg)
 							.setHeader("packRefId", packRefId).build();
 					messages.add(msg);

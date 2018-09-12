@@ -7,6 +7,7 @@
 	xmlns:int-xml="http://www.springframework.org/schema/integration/xml"
 	xmlns:int-stream="http://www.springframework.org/schema/integration/stream"
 	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:int-file="http://www.springframework.org/schema/integration/file"
 	xsi:schemaLocation="
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
@@ -15,7 +16,8 @@
 		http://www.springframework.org/schema/integration/xml
     	http://www.springframework.org/schema/integration/xml/spring-integration-xml.xsd
     	http://www.springframework.org/schema/integration/stream http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd
-    	http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+    	http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+    	http://www.springframework.org/schema/integration/file http://www.springframework.org/schema/integration/file/spring-integration-file.xsd">
 
 	<bean id="colaEntrada"
 		class="org.apache.activemq.command.ActiveMQQueue">
@@ -29,20 +31,24 @@
 
 	<int:chain input-channel="xmlPagosInChan">
 		<int:splitter id="paymentsInSplitter">
-			<bean class="com.acme.is.PaymentsSplitter"/>
+			<bean class="com.acme.is.PaymentsSplitter" />
 		</int:splitter>
-	
- 		<int-xml:xpath-router id="paymentRouter" evaluate-as-string="true">
-		    <int-xml:xpath-expression expression="/payment/bank"/>
-		    <int-xml:mapping value="1" channel="xmlToSqlTransformerChan"/>
-		    <int-xml:mapping value="2" channel="xmlToSoapTransformerChan"/>
-		    <int-xml:mapping value="3" channel="xmlToCsvTransformerChan"/>
-		</int-xml:xpath-router> 
+
+		<int-xml:xpath-router id="paymentRouter"
+			evaluate-as-string="true">
+			<int-xml:xpath-expression
+				expression="paymentList/payment/bank" />
+			<int-xml:mapping value="1" channel="xmlToSqlTransformerChan" />
+			<int-xml:mapping value="2" channel="xmlToSoapTransformerChan" />
+			<int-xml:mapping value="3" channel="xmlToCsvTransformerChan" />
+		</int-xml:xpath-router>
 	</int:chain>
-	<int-stream:stdout-channel-adapter id="xmlToSqlTransformerChan" />
+	<int-stream:stdout-channel-adapter
+		id="xmlToSqlTransformerChan" />
 	<!-- int-stream:stdout-channel-adapter id="xmlToSoapTransformerChan" -->
 	<int:channel id="xmlToSoapTransformerChan" />
-	<int-stream:stdout-channel-adapter id="xmlToCsvTransformerChan" />
+	<int-stream:stdout-channel-adapter
+		id="xmlToCsvTransformerChan" />
 
 	<int:transformer id="xmlToSoapTransformer"
 		ref="xmlSoapTransformerBean" input-channel="xmlToSoapTransformerChan"
@@ -57,6 +63,18 @@
 		reply-channel="normalizerRouterChan" />
 	<int:channel id="normalizerRouterChan" />
 
+
+	<int:channel id="fileWriteChan"/>
+	<int:service-activator input-channel="fileWriteChan"
+		output-channel="filesOut" ref="fileHandler" />
+
+	<int-file:outbound-channel-adapter
+		id="filesOut"
+		filename-generator-expression="headers['packRefId']+'.csv'" 
+		directory="file:target/output/PAYOUT" />
+
+	<bean id="fileHandler" class="com.acme.is.FileOutHandler" />
+
 	<int:router id="normalizerRouter"
 		input-channel="normalizerRouterChan"
 		expression="true ? 'soapToXmlTransformerChan' : (true ? 'csvToXmlTransformerChan' : 'sqlToXmlTransformerChan')" />
@@ -68,14 +86,12 @@
 
 	<int:channel id="aggregatorChan" />
 
-	<int:aggregator
-	 	input-channel="aggregatorChan" 
-		output-channel="xmlPagosOutChan"
-		ref="aggregatorBean" />
-	<bean id="aggregatorBean" class="com.acme.is.PaymentsAggregator"/>
+	<int:aggregator input-channel="aggregatorChan"
+		output-channel="xmlPagosOutChan" ref="aggregatorBean" />
+	<bean id="aggregatorBean" class="com.acme.is.PaymentsAggregator" />
 
 	<int:channel id="xmlPagosOutChan" />
-	
+
 	<bean id="colaSalida"
 		class="org.apache.activemq.command.ActiveMQQueue">
 		<constructor-arg value="middleware-queue-out" />
