@@ -43,12 +43,11 @@
 			<int-xml:mapping value="3" channel="xmlToCsvTransformerChan" />
 		</int-xml:xpath-router>
 	</int:chain>
-	<int-stream:stdout-channel-adapter
-		id="xmlToSqlTransformerChan" />
+	
+	<int-stream:stdout-channel-adapter id="xmlToSqlTransformerChan" />
 	<!-- int-stream:stdout-channel-adapter id="xmlToSoapTransformerChan" -->
 	<int:channel id="xmlToSoapTransformerChan" />
-	<int-stream:stdout-channel-adapter
-		id="xmlToCsvTransformerChan" />
+	<int-stream:stdout-channel-adapter id="xmlToCsvTransformerChan" />
 
 	<int:transformer id="xmlToSoapTransformer"
 		ref="xmlSoapTransformerBean" input-channel="xmlToSoapTransformerChan"
@@ -62,7 +61,6 @@
 		uri="http://localhost:8080/NewBankPagosWS/"
 		reply-channel="normalizerRouterChan" />
 	<int:channel id="normalizerRouterChan" />
-
 
 	<int:channel id="fileWriteChan"/>
 	<int:service-activator input-channel="fileWriteChan"
@@ -100,7 +98,9 @@
 	<int:channel id="aggregatorChan" />
 
 	<int:aggregator input-channel="aggregatorChan"
-		output-channel="xmlPagosOutChan" ref="aggregatorBean" />
+		output-channel="xmlPagosOutChan"
+		correlation-strategy-expression="headers['packRefId']" 
+		ref="aggregatorBean" />
 	<bean id="aggregatorBean" class="com.acme.is.PaymentsAggregator" />
 
 	<int:channel id="xmlPagosOutChan" />
