@@ -8,6 +8,8 @@
 	xmlns:int-stream="http://www.springframework.org/schema/integration/stream"
 	xmlns:util="http://www.springframework.org/schema/util"
 	xmlns:int-file="http://www.springframework.org/schema/integration/file"
+	xmlns:int-jdbc="http://www.springframework.org/schema/integration/jdbc"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
 	xsi:schemaLocation="
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
@@ -17,7 +19,17 @@
     	http://www.springframework.org/schema/integration/xml/spring-integration-xml.xsd
     	http://www.springframework.org/schema/integration/stream http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd
     	http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
-    	http://www.springframework.org/schema/integration/file http://www.springframework.org/schema/integration/file/spring-integration-file.xsd">
+    	http://www.springframework.org/schema/integration/file http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
+    	http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd
+    	http://www.springframework.org/schema/integration/jdbc http://www.springframework.org/schema/integration/jdbc/spring-integration-jdbc.xsd">
+
+	<bean id="dataSource"
+        class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="org.postgresql.Driver" />
+        <property name="url" value="jdbc:postgresql://localhost:5432/acme" />
+        <property name="username" value="postgres" />
+        <property name="password" value="root" />
+   </bean>
 
 	<bean id="colaEntrada"
 		class="org.apache.activemq.command.ActiveMQQueue">
@@ -38,14 +50,12 @@
 			evaluate-as-string="true">
 			<int-xml:xpath-expression
 				expression="paymentList/payment/bank" />
-			<int-xml:mapping value="1" channel="xmlToSqlTransformerChan" />
+			<int-xml:mapping value="1" channel="acmeDbChan" />
 			<int-xml:mapping value="2" channel="xmlToSoapTransformerChan" />
 			<int-xml:mapping value="3" channel="xmlToCsvTransformerChan" />
 		</int-xml:xpath-router>
 	</int:chain>
 	
-	<int-stream:stdout-channel-adapter id="xmlToSqlTransformerChan" />
-	<!-- int-stream:stdout-channel-adapter id="xmlToSoapTransformerChan" -->
 	<int:channel id="xmlToSoapTransformerChan" />
 	<int-stream:stdout-channel-adapter id="xmlToCsvTransformerChan" />
 
@@ -85,6 +95,27 @@
 	
 	<int:channel id="fileToStringTrans"/>
 	<int-file:file-to-string-transformer input-channel="fileToStringTrans" output-channel="normalizerRouterChan"/>
+
+
+
+	<int:channel id="acmeDbChan" />
+	<int:chain input-channel="acmeDbChan" output-channel="TEST">
+		<int:transformer id="xmlToDbTransformer" ref="xmlToDbTransformerBean" method="xmlToDb" />
+		
+	    <int-jdbc:outbound-gateway
+	    	data-source="dataSource"
+	        update="insert into pagos (sucursal_origen, cuenta_origen, sucursal_destino, cuenta_destino, fecha, hora, moneda, importe, referencia, observaciones)
+	                           values (:payload[sucursal_origen], :payload[cuenta_origen], :payload[sucursal_destino], :payload[cuenta_destino], :payload[fecha],
+	                                   :payload[hora], :payload[moneda], :payload[importe], :payload[referencia], :payload[observaciones])">
+	    </int-jdbc:outbound-gateway>
+	</int:chain>
+
+	<bean id="xmlToDbTransformerBean" class="com.acme.is.XmlToDbTransformer" />
+
+	<int-stream:stdout-channel-adapter id="TEST" />
+	
+	
+	<!-- NORMALIZER -->
 
 	<int:router id="normalizerRouter"
 		input-channel="normalizerRouterChan"
