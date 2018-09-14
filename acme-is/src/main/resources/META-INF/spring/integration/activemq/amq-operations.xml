@@ -99,20 +99,26 @@
 
 
 	<int:channel id="acmeDbChan" />
-	<int:chain input-channel="acmeDbChan" output-channel="TEST">
+	<int:chain input-channel="acmeDbChan" output-channel="debugStdOut">
 		<int:transformer id="xmlToDbTransformer" ref="xmlToDbTransformerBean" method="xmlToDb" />
 		
 	    <int-jdbc:outbound-gateway
 	    	data-source="dataSource"
-	        update="insert into pagos (sucursal_origen, cuenta_origen, sucursal_destino, cuenta_destino, fecha, hora, moneda, importe, referencia, observaciones)
+	        update="insert into payments (origin_branch_office, origin_account, destination_branch_office, destination_account, date, time, currency, amount, reference, notes)
 	                           values (:payload[sucursal_origen], :payload[cuenta_origen], :payload[sucursal_destino], :payload[cuenta_destino], :payload[fecha],
-	                                   :payload[hora], :payload[moneda], :payload[importe], :payload[referencia], :payload[observaciones])">
+	                                   :payload[hora], :payload[moneda], :payload[importe], :payload[referencia], :payload[observaciones])"
+	    	query="select * from payments order by id desc limit 1">
 	    </int-jdbc:outbound-gateway>
 	</int:chain>
 
 	<bean id="xmlToDbTransformerBean" class="com.acme.is.XmlToDbTransformer" />
 
-	<int-stream:stdout-channel-adapter id="TEST" />
+
+
+
+	<!-- PARA DEBUG -->
+	<int-stream:stdout-channel-adapter id="debugStdOut" channel="debugChan"/>
+	
 	
 	
 	<!-- NORMALIZER -->
