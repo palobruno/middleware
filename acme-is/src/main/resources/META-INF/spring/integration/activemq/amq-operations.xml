@@ -69,7 +69,12 @@
 	<int-ws:outbound-gateway id="newBankWsGateway"
 		request-channel="newBankWsChan"
 		uri="http://localhost:8080/NewBankPagosWS/"
-		reply-channel="normalizerRouterChan" />
+		reply-channel="newBankWsEnricherChannel" />
+		
+	<int:header-enricher input-channel="newBankWsEnricherChannel" output-channel="normalizerRouterChan">
+		<int:header name="type" value="soap"/>
+	</int:header-enricher>
+	
 	<int:channel id="normalizerRouterChan" />
 
 	<int:channel id="fileWriteChan"/>
@@ -91,12 +96,11 @@
  
 	<int:header-enricher input-channel="fileIn" output-channel="fileToStringTrans">
 		<int:header name="packRefId" expression="payload.name"/>
+		<int:header name="type" value="csv"/>
 	</int:header-enricher>
 	
 	<int:channel id="fileToStringTrans"/>
 	<int-file:file-to-string-transformer input-channel="fileToStringTrans" output-channel="normalizerRouterChan"/>
-
-
 
 	<int:channel id="acmeDbChan" />
 	<int:chain input-channel="acmeDbChan" output-channel="debugStdOut">
@@ -122,15 +126,25 @@
 	
 	
 	<!-- NORMALIZER -->
-
-	<int:router id="normalizerRouter"
-		input-channel="normalizerRouterChan"
-		expression="true ? 'soapToXmlTransformerChan' : (true ? 'csvToXmlTransformerChan' : 'sqlToXmlTransformerChan')" />
-	<int:channel id="soapToXmlTransformerChan" />
+	
+	<int:header-value-router input-channel="normalizerRouterChan" header-name="type">
+	    <int:mapping value="soap" channel="soapToXmlTransformerChan" />
+	    <int:mapping value="csv" channel="csvToXmlTransformerChan" />
+	    <int:mapping value="sql" channel="sqlToXmlTransformerChan" />
+	</int:header-value-router>
 
 	<int:transformer id="soapToXmlTransformer"
 		ref="xmlSoapTransformerBean" input-channel="soapToXmlTransformerChan"
 		method="soapToXml" output-channel="aggregatorChan" />
+		
+	<int:channel id="aggregatorChan" />
+	
+	<int:transformer id="csvToXmlTransformer"
+		ref="csvToXmlTransformerBean" input-channel="csvToXmlTransformerChan"
+		method="csvToXml" output-channel="aggregatorChan" />
+		
+	<bean id="csvToXmlTransformerBean"
+		class="com.acme.is.CsvXmlTransformer" />
 
 	<int:channel id="aggregatorChan" />
 
