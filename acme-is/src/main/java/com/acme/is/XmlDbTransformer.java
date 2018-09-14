@@ -11,7 +11,7 @@ import org.w3c.dom.NodeList;
 import org.w3c.dom.Node;
 
 
-public class XmlToDbTransformer {
+public class XmlDbTransformer {
 
 	public Message<Map<String, Object>> xmlToDb(Message<String> msg) {
 		Map<String, Object> attrsMap = new HashMap<>();
@@ -56,5 +56,13 @@ public class XmlToDbTransformer {
 		
 		return MessageBuilder.withPayload(attrsMap).copyHeaders(msg.getHeaders()).build();
 	}
+	
+	
+	public Message<Map<String, Object>> dbToXml(Message<Map<String, Object>> msg) {
+		return MessageBuilder.withPayload(msg.getPayload()).copyHeaders(msg.getHeaders()).build();
+	}
+	
+	
+	
 	
 }

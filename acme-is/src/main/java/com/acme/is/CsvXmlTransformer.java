@@ -1,14 +1,11 @@
 package com.acme.is;
 
-import org.springframework.integration.IntegrationMessageHeaderAccessor;
+import org.springframework.integration.support.MessageBuilder;
 import org.springframework.messaging.Message;
-import java.util.List;
-import java.io.IOException;
 
 public class CsvXmlTransformer {
 
-	public String csvToXml(Message<String> csvResults) {
-		IntegrationMessageHeaderAccessor accessor = new IntegrationMessageHeaderAccessor(csvResults);
+	public Message<String> csvToXml(Message<String> csvResults) {
 		String csv = csvResults.getPayload();
 		
 		String[] lines = csv.split("\r\n");
@@ -20,10 +17,14 @@ public class CsvXmlTransformer {
 			xmlResults += lineXml;
 		}
 	
-		return xmlResults;
+		return MessageBuilder.withPayload(xmlResults).copyHeaders(csvResults.getHeaders()).build();
 	}
 	
-	public String lineToXml(String line) {
+	public Message<String> xmlToCsv(Message<String> xmlMsg) {
+		return xmlMsg;
+	}
+	
+	private String lineToXml(String line) {
 		String xmlResult;
 		String[] fields = line.split(",");
 		

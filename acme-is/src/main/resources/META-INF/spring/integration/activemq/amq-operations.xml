@@ -22,7 +22,11 @@
     	http://www.springframework.org/schema/integration/file http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
     	http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd
     	http://www.springframework.org/schema/integration/jdbc http://www.springframework.org/schema/integration/jdbc/spring-integration-jdbc.xsd">
-
+    	
+    	
+    	
+    	
+	<!--  BEANS  -->
 	<bean id="dataSource"
         class="org.springframework.jdbc.datasource.DriverManagerDataSource">
         <property name="driverClassName" value="org.postgresql.Driver" />
@@ -30,21 +34,87 @@
         <property name="username" value="postgres" />
         <property name="password" value="root" />
    </bean>
-
-	<bean id="colaEntrada"
-		class="org.apache.activemq.command.ActiveMQQueue">
+	<bean id="colaEntrada" class="org.apache.activemq.command.ActiveMQQueue">
 		<constructor-arg value="middleware-queue-in" />
 	</bean>
+	<bean id="colaSalida" class="org.apache.activemq.command.ActiveMQQueue">
+		<constructor-arg value="middleware-queue-out" />
+	</bean>
+	<bean id="xmlSoapTransformerBean" class="com.acme.is.XmlSoapTransformer" />
+	<bean id="xmlCsvTransformerBean" class="com.acme.is.CsvXmlTransformer" />
+	<bean id="xmlDbTransformerBean" class="com.acme.is.XmlDbTransformer" />
+	<bean id="fileHandler" class="com.acme.is.FileOutHandler" />
+	<bean id="splitterBean" class="com.acme.is.PaymentsSplitter"/>
+	<bean id="aggregatorBean" class="com.acme.is.PaymentsAggregator" />
+	<bean id="filesAggregatorBean" class="com.acme.is.FilesAggregator" />
+	<bean id="filesCorrStratBean" class="com.acme.is.FilesCorrelationStrategy" />
+	<bean id="filesReleaseStratBean" class="com.acme.is.FilesReleaseStrategy" />
 
-	<int-jms:message-driven-channel-adapter
-		id="colaPagosInAdapter" destination="colaEntrada"
-		channel="xmlPagosInChan" />
+
+
+
+	<!--  CHANNELS  -->
 	<int:channel id="xmlPagosInChan" />
+	<int:channel id="xmlToSoapTransformerChan" />
+	<int:channel id="xmlToCsvTransformerChan" />
+	<int:channel id="newBankWsChan" />
+	<int:channel id="newBankWsEnricherChannel" />
+	<int:channel id="dbEnricherChannel" />
+	<int:channel id="normalizerRouterChan" />
+	<int:channel id="fileWriteChan"/>
+	<int:channel id="fileToStringTrans"/>
+	<int:channel id="soapToXmlTransformerChan" />
+	<int:channel id="csvToXmlTransformerChan" />
+	<int:channel id="dbToXmlTransformerChan" />
+	<int:channel id="aggregatorChan" />
+	<int:channel id="filesAggregatorChan" />
+	<int:channel id="filesOut" />
+	<int:channel id="xmlPagosOutChan" />
+	<int:channel id="acmeDbChan" />
+	<int-stream:stdout-channel-adapter id="DEBUG"/>
+	
+			
 
+
+	<!--  TRANSFORMERS  -->
+	<int:transformer id="xmlToSoapTransformer" ref="xmlSoapTransformerBean" method="xmlToSoap"
+		input-channel="xmlToSoapTransformerChan" output-channel="newBankWsChan" />
+	
+	<int:transformer id="xmlToCsvTransformer" ref="xmlCsvTransformerBean" method="xmlToCsv"
+		input-channel="xmlToCsvTransformerChan" output-channel="fileWriteChan" />
+	
+	<int:transformer id="csvToXmlTransformer" ref="xmlCsvTransformerBean" method="csvToXml"
+		input-channel="csvToXmlTransformerChan" output-channel="aggregatorChan" />
+		
+	<int:transformer id="soapToXmlTransformer" ref="xmlSoapTransformerBean" method="soapToXml"
+		 input-channel="soapToXmlTransformerChan" output-channel="aggregatorChan" />
+
+	<int:transformer id="dbToXmlTransformer" ref="xmlDbTransformerBean" method="dbToXml"
+		 input-channel="dbToXmlTransformerChan" output-channel="aggregatorChan" />
+		 
+	<int:header-enricher input-channel="newBankWsEnricherChannel" output-channel="normalizerRouterChan">
+		<int:header name="type" value="soap"/>
+	</int:header-enricher>
+		
+	<int:header-enricher input-channel="dbEnricherChannel" output-channel="normalizerRouterChan">
+		<int:header name="type" value="db"/>
+	</int:header-enricher>
+	
+	<int:header-enricher input-channel="fileIn" output-channel="filesAggregatorChan">
+		<int:header name="packRefId" expression="payload.name"/>
+		<int:header name="type" value="csv"/>
+		<int:header name="outFile" value="true"/>
+	</int:header-enricher>
+	
+	<int-file:file-to-string-transformer input-channel="fileToStringTrans" output-channel="normalizerRouterChan"/>
+	
+	
+	
+	
+	
+	<!--  SPLITTER / AGGREGATOR / ROUTERS  -->
 	<int:chain input-channel="xmlPagosInChan">
-		<int:splitter id="paymentsInSplitter">
-			<bean class="com.acme.is.PaymentsSplitter" />
-		</int:splitter>
+		<int:splitter id="paymentsInSplitter" ref="splitterBean" />
 
 		<int-xml:xpath-router id="paymentRouter"
 			evaluate-as-string="true">
@@ -56,55 +126,66 @@
 		</int-xml:xpath-router>
 	</int:chain>
 	
-	<int:channel id="xmlToSoapTransformerChan" />
-	<int-stream:stdout-channel-adapter id="xmlToCsvTransformerChan" />
+	<int:aggregator input-channel="aggregatorChan"
+		output-channel="xmlPagosOutChan"
+		correlation-strategy-expression="headers['packRefId']"
+		ref="aggregatorBean" expire-groups-upon-completion="false" />
 
-	<int:transformer id="xmlToSoapTransformer"
-		ref="xmlSoapTransformerBean" input-channel="xmlToSoapTransformerChan"
-		method="xmlToSoap" output-channel="newBankWsChan" />
-	<bean id="xmlSoapTransformerBean"
-		class="com.acme.is.XmlSoapTransformer" />
-	<int:channel id="newBankWsChan" />
+	<int:aggregator input-channel="filesAggregatorChan"
+		output-channel="fileToStringTrans"
+		correlation-strategy-expression="headers['packRefId']"
+		release-strategy-expression="size() == 2"
+		ref="filesAggregatorBean"/>
+<!-- 		
+	<int:aggregator input-channel="filesAggregatorChan"
+		output-channel="fileToStringTrans"
+		correlation-strategy="filesCorrStratBean"
+		release-strategy="filesReleaseStratBean"
+		ref="filesAggregatorBean"/>
+ -->
+ 
+	<int:header-value-router input-channel="normalizerRouterChan" header-name="type">
+	    <int:mapping value="soap" channel="soapToXmlTransformerChan" />
+	    <int:mapping value="csv" channel="csvToXmlTransformerChan" />
+	    <int:mapping value="db" channel="dbToXmlTransformerChan" />
+	</int:header-value-router>
+		
+		
 
+
+	
+	<!--  ADAPTERS / GATEWAYS  -->
+	<int-jms:message-driven-channel-adapter
+		id="colaPagosInAdapter" destination="colaEntrada"
+		channel="xmlPagosInChan" />
+		
+	<int-jms:outbound-channel-adapter
+		id="colaPagosOutAdapter" destination="colaSalida"
+		channel="xmlPagosOutChan" />
+		
 	<int-ws:outbound-gateway id="newBankWsGateway"
 		request-channel="newBankWsChan"
 		uri="http://localhost:8080/NewBankPagosWS/"
 		reply-channel="newBankWsEnricherChannel" />
-		
-	<int:header-enricher input-channel="newBankWsEnricherChannel" output-channel="normalizerRouterChan">
-		<int:header name="type" value="soap"/>
-	</int:header-enricher>
-	
-	<int:channel id="normalizerRouterChan" />
 
-	<int:channel id="fileWriteChan"/>
 	<int:service-activator input-channel="fileWriteChan"
 		output-channel="filesOut" ref="fileHandler" />
 
-	<int-file:outbound-channel-adapter
-		id="filesOut"
-		filename-generator-expression="headers['packRefId']+'.csv'" 
-		directory="file:target/output/PAYIN" />
-
-	<bean id="fileHandler" class="com.acme.is.FileOutHandler" />
+	
+	<int-file:outbound-gateway id="filesOutGateway"
+		request-channel="filesOut"
+	    reply-channel="filesAggregatorChan"
+	    filename-generator-expression="headers['packRefId']+'.in'" 
+	    directory="file:target/output/PAYIN" />
 
 	<int-file:inbound-channel-adapter id="fileIn"
 			directory="file:target/output/PAYOUT"
-			filename-regex="[0-9]+.csv">
+			filename-regex="[0-9]+">
 		<int:poller id="poller" fixed-delay="5000"/>
 	</int-file:inbound-channel-adapter>
- 
-	<int:header-enricher input-channel="fileIn" output-channel="fileToStringTrans">
-		<int:header name="packRefId" expression="payload.name"/>
-		<int:header name="type" value="csv"/>
-	</int:header-enricher>
-	
-	<int:channel id="fileToStringTrans"/>
-	<int-file:file-to-string-transformer input-channel="fileToStringTrans" output-channel="normalizerRouterChan"/>
 
-	<int:channel id="acmeDbChan" />
-	<int:chain input-channel="acmeDbChan" output-channel="debugStdOut">
-		<int:transformer id="xmlToDbTransformer" ref="xmlToDbTransformerBean" method="xmlToDb" />
+	<int:chain input-channel="acmeDbChan" output-channel="dbEnricherChannel">
+		<int:transformer id="xmlDbTransformer" ref="xmlDbTransformerBean" method="xmlToDb" />
 		
 	    <int-jdbc:outbound-gateway
 	    	data-source="dataSource"
@@ -115,54 +196,5 @@
 	    </int-jdbc:outbound-gateway>
 	</int:chain>
 
-	<bean id="xmlToDbTransformerBean" class="com.acme.is.XmlToDbTransformer" />
-
-
-
-
-	<!-- PARA DEBUG -->
-	<int-stream:stdout-channel-adapter id="debugStdOut" channel="debugChan"/>
-	
-	
-	
-	<!-- NORMALIZER -->
-	
-	<int:header-value-router input-channel="normalizerRouterChan" header-name="type">
-	    <int:mapping value="soap" channel="soapToXmlTransformerChan" />
-	    <int:mapping value="csv" channel="csvToXmlTransformerChan" />
-	    <int:mapping value="sql" channel="sqlToXmlTransformerChan" />
-	</int:header-value-router>
-
-	<int:transformer id="soapToXmlTransformer"
-		ref="xmlSoapTransformerBean" input-channel="soapToXmlTransformerChan"
-		method="soapToXml" output-channel="aggregatorChan" />
-		
-	<int:channel id="aggregatorChan" />
-	
-	<int:transformer id="csvToXmlTransformer"
-		ref="csvToXmlTransformerBean" input-channel="csvToXmlTransformerChan"
-		method="csvToXml" output-channel="aggregatorChan" />
-		
-	<bean id="csvToXmlTransformerBean"
-		class="com.acme.is.CsvXmlTransformer" />
-
-	<int:channel id="aggregatorChan" />
-
-	<int:aggregator input-channel="aggregatorChan"
-		output-channel="xmlPagosOutChan"
-		correlation-strategy-expression="headers['packRefId']" 
-		ref="aggregatorBean" />
-	<bean id="aggregatorBean" class="com.acme.is.PaymentsAggregator" />
-
-	<int:channel id="xmlPagosOutChan" />
-
-	<bean id="colaSalida"
-		class="org.apache.activemq.command.ActiveMQQueue">
-		<constructor-arg value="middleware-queue-out" />
-	</bean>
-
-	<int-jms:outbound-channel-adapter
-		id="colaPagosOutAdapter" destination="colaSalida"
-		channel="xmlPagosOutChan" />
 
 </beans>

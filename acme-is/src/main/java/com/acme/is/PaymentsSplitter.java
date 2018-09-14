@@ -27,7 +27,7 @@ public class PaymentsSplitter extends AbstractMessageSplitter {
 			XPath xPath = XPathFactory.newInstance().newXPath();
 			Message<String> msg;
 			
-			long packRefId = Integer.parseInt((String) xPath.compile("string(/paymentList/id)").evaluate(xmlDocument, XPathConstants.STRING));
+			String packRefId = ((String) xPath.compile("string(/paymentList/id)").evaluate(xmlDocument, XPathConstants.STRING));
 
 			for (int i = 1; i <= 3; i++) {
 				String bankiMsg = "";
@@ -39,7 +39,7 @@ public class PaymentsSplitter extends AbstractMessageSplitter {
 						for (int j = 0; j < nodeList.getLength(); j++) {
 							bankiMsg += "\n\t" + Utils.xmlNodeToString(nodeList.item(j));
 						}
-						bankiMsg += "<paymentList>" + bankiMsg + "\n</paymentList>";
+						bankiMsg = "<paymentList>" + bankiMsg + "\n</paymentList>";
 						msg = MessageBuilder.withPayload(bankiMsg).setHeader("packRefId", packRefId).build();
 						messages.add(msg);
 					} else {
