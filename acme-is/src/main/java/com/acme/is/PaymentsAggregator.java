@@ -17,7 +17,7 @@ public class PaymentsAggregator {
 		}
 		addedResults += "\n</paymentList>";
 		
-		System.out.println("Aggregator: " + addedResults);
+		System.out.println("Aggregator:\n" + addedResults);
 		return MessageBuilder.withPayload(addedResults).build();
 	}
 	

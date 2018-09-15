@@ -184,7 +184,7 @@
 		<int:poller id="poller" fixed-delay="5000"/>
 	</int-file:inbound-channel-adapter>
 
-	<int:chain input-channel="acmeDbChan" output-channel="dbEnricherChannel">
+	<int:chain input-channel="acmeDbChan" output-channel="dbEnricherChannel" >
 		<int:transformer id="xmlDbTransformer" ref="xmlDbTransformerBean" method="xmlToDb" />
 		
 	    <int-jdbc:outbound-gateway
@@ -192,7 +192,7 @@
 	        update="insert into payments (origin_branch_office, origin_account, destination_branch_office, destination_account, date, time, currency, amount, reference, notes)
 	                           values (:payload[sucursal_origen], :payload[cuenta_origen], :payload[sucursal_destino], :payload[cuenta_destino], :payload[fecha],
 	                                   :payload[hora], :payload[moneda], :payload[importe], :payload[referencia], :payload[observaciones])"
-	    	query="select * from payments order by id desc limit 1">
+	    	keys-generated="true">
 	    </int-jdbc:outbound-gateway>
 	</int:chain>
 

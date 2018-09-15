@@ -57,6 +57,7 @@ public class PaymentsSplitter extends AbstractMessageSplitter {
 			e.printStackTrace();
 		}
 
+		//System.out.println("Splitter:\n" + message.getPayload());
 		return messages;
 	}
 
