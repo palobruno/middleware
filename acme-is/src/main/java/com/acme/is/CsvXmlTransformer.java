@@ -1,5 +1,16 @@
 package com.acme.is;
 
+import java.io.File;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.net.URL;
+
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.transform.TransformerFactory;
+
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.messaging.Message;
 
@@ -20,8 +31,27 @@ public class CsvXmlTransformer {
 		return MessageBuilder.withPayload(xmlResults).copyHeaders(csvResults.getHeaders()).build();
 	}
 	
-	public Message<String> xmlToCsv(Message<String> xmlMsg) {
-		return xmlMsg;
+	public Message<String> xmlToCsv(Message<String> xmlMsg) throws Exception{
+		
+		String res = "";
+		
+		try {
+			Source xmlSrc = new StreamSource(new StringReader(xmlMsg.getPayload()));
+			ClassLoader classLoader = getClass().getClassLoader();
+			File xsltFile = new File(classLoader.getResource("XSLs/xml_to_csv.xslt").getFile());
+			Source xsltSrc = new StreamSource(xsltFile);
+			TransformerFactory factory = TransformerFactory.newInstance();
+			Transformer transformer = factory.newTransformer(xsltSrc);
+			StringWriter writer = new StringWriter();
+			StreamResult result = new StreamResult(writer);
+			transformer.transform(xmlSrc, result);
+			res = writer.toString();
+		}
+		catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		
+		return MessageBuilder.withPayload(res).copyHeaders(xmlMsg.getHeaders()).build();
 	}
 	
 	private String lineToXml(String line) {
@@ -42,4 +72,5 @@ public class CsvXmlTransformer {
 		
 		return xmlResult;
 	}
+
 }
