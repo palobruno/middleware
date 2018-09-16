@@ -11,6 +11,6 @@ import net.middleware.*;
 public interface PagosNewBankWS {
 
 	@WebMethod
-	public PagosNewBankResponse addPerson(PagosNewBankRequest p);
+	public PagosNewBankResponse makePayments(PagosNewBankRequest p);
 	
 }

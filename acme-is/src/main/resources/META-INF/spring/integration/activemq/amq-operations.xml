@@ -10,6 +10,7 @@
 	xmlns:int-file="http://www.springframework.org/schema/integration/file"
 	xmlns:int-jdbc="http://www.springframework.org/schema/integration/jdbc"
 	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xmlns:oxm="http://www.springframework.org/schema/oxm"
 	xsi:schemaLocation="
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
@@ -21,12 +22,11 @@
     	http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
     	http://www.springframework.org/schema/integration/file http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
     	http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd
-    	http://www.springframework.org/schema/integration/jdbc http://www.springframework.org/schema/integration/jdbc/spring-integration-jdbc.xsd">
-    	
-    	
-    	
-    	
+    	http://www.springframework.org/schema/integration/jdbc http://www.springframework.org/schema/integration/jdbc/spring-integration-jdbc.xsd
+    	http://www.springframework.org/schema/oxm http://www.springframework.org/schema/oxm/spring-oxm-3.0.xsd">
+
 	<!--  BEANS  -->
+
 	<bean id="dataSource"
         class="org.springframework.jdbc.datasource.DriverManagerDataSource">
         <property name="driverClassName" value="org.postgresql.Driver" />
@@ -165,12 +165,17 @@
 		id="colaPagosOutAdapter" destination="colaSalida"
 		channel="xmlPagosOutChan" />
 		
+	<oxm:jaxb2-marshaller id="jaxb2Marshaller">
+		<oxm:class-to-be-bound name="com.acme.is.PagosNewBankRequest"/>
+	</oxm:jaxb2-marshaller>
+	
 	<int-ws:outbound-gateway id="newBankWsGateway"
 		request-channel="newBankWsChan"
 		uri="http://localhost:8080/NewBankPagosWS/"
+		marshaller="jaxb2Marshaller"
+		unmarshaller="jaxb2Marshaller"
 		reply-channel="newBankWsEnricherChannel" />
 
-	
 	<int-file:outbound-gateway id="filesOutGateway"
 		request-channel="fileWriteChan"
 	    reply-channel="filesAggregatorChan"

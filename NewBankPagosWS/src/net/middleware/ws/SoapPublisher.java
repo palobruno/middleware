@@ -1,6 +1,7 @@
 package net.middleware.ws;
 
 import javax.xml.ws.Endpoint;
+import net.middleware.ws.PagosNewBankWSImpl;;
 
 public class SoapPublisher {
 
