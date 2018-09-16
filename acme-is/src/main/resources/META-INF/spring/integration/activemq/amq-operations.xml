@@ -68,10 +68,10 @@
 	<int:channel id="dbToXmlTransformerChan" />
 	<int:channel id="aggregatorChan" />
 	<int:channel id="filesAggregatorChan" />
-	<int:channel id="filesOut" />
 	<int:channel id="xmlPagosOutChan" />
 	<int:channel id="acmeDbChan" />
-	<int-stream:stdout-channel-adapter id="DEBUG"/>
+	<int:channel id="dbGatewayChan" />
+	<int:channel id="inRouterChan" />
 	
 			
 
@@ -113,18 +113,20 @@
 	
 	
 	<!--  SPLITTER / AGGREGATOR / ROUTERS  -->
-	<int:chain input-channel="xmlPagosInChan">
-		<int:splitter id="paymentsInSplitter" ref="splitterBean" />
+	<int:splitter id="paymentsInSplitter"
+           input-channel="xmlPagosInChan"
+           output-channel="inRouterChan"
+           ref="splitterBean" />
 
-		<int-xml:xpath-router id="paymentRouter"
-			evaluate-as-string="true">
-			<int-xml:xpath-expression
-				expression="paymentList/payment/bank" />
-			<int-xml:mapping value="1" channel="acmeDbChan" />
-			<int-xml:mapping value="2" channel="xmlToSoapTransformerChan" />
-			<int-xml:mapping value="3" channel="xmlToCsvTransformerChan" />
-		</int-xml:xpath-router>
-	</int:chain>
+	<int-xml:xpath-router id="paymentRouter"
+		input-channel="inRouterChan"
+		evaluate-as-string="true">
+		<int-xml:xpath-expression
+			expression="paymentList/payment/bank" />
+		<int-xml:mapping value="1" channel="acmeDbChan" />
+		<int-xml:mapping value="2" channel="xmlToSoapTransformerChan" />
+		<int-xml:mapping value="3" channel="xmlToCsvTransformerChan" />
+	</int-xml:xpath-router>
 	
 	<int:aggregator input-channel="aggregatorChan"
 		output-channel="xmlPagosOutChan"
@@ -168,12 +170,9 @@
 		uri="http://localhost:8080/NewBankPagosWS/"
 		reply-channel="newBankWsEnricherChannel" />
 
-	<int:service-activator input-channel="fileWriteChan"
-		output-channel="filesOut" ref="fileHandler" />
-
 	
 	<int-file:outbound-gateway id="filesOutGateway"
-		request-channel="filesOut"
+		request-channel="fileWriteChan"
 	    reply-channel="filesAggregatorChan"
 	    filename-generator-expression="headers['packRefId']+'.in'" 
 	    directory="file:target/output/PAYIN" />
@@ -184,17 +183,20 @@
 		<int:poller id="poller" fixed-delay="5000"/>
 	</int-file:inbound-channel-adapter>
 
-	<int:chain input-channel="acmeDbChan" output-channel="dbEnricherChannel" >
-		<int:transformer id="xmlDbTransformer" ref="xmlDbTransformerBean" method="xmlToDb" />
+	<int:transformer id="xmlDbTransformer"
+		 input-channel="acmeDbChan" output-channel="dbGatewayChan"
+		 ref="xmlDbTransformerBean" method="xmlToDb" />
 		
-	    <int-jdbc:outbound-gateway
-	    	data-source="dataSource"
-	        update="insert into payments (origin_branch_office, origin_account, destination_branch_office, destination_account, date, time, currency, amount, reference, notes)
-	                           values (:payload[sucursal_origen], :payload[cuenta_origen], :payload[sucursal_destino], :payload[cuenta_destino], :payload[fecha],
-	                                   :payload[hora], :payload[moneda], :payload[importe], :payload[referencia], :payload[observaciones])"
-	    	keys-generated="true">
-	    </int-jdbc:outbound-gateway>
-	</int:chain>
+    <int-jdbc:outbound-gateway
+    	data-source="dataSource"
+    	request-channel="dbGatewayChan"
+    	reply-channel="dbEnricherChannel"
+        update="insert into payments (origin_branch_office, origin_account, destination_branch_office, destination_account, date, time, currency, amount, reference, notes)
+                           values (:payload[sucursal_origen], :payload[cuenta_origen], :payload[sucursal_destino], :payload[cuenta_destino], :payload[fecha],
+                                   :payload[hora], :payload[moneda], :payload[importe], :payload[referencia], :payload[observaciones])"
+    	keys-generated="true">
+    </int-jdbc:outbound-gateway>
+
 
 
 </beans>
