@@ -11,33 +11,27 @@ import javax.servlet.http.HttpServletResponse;
 
 @WebServlet("/consulta")
 public class Consulta extends HttpServlet {
-	
+
 	private static final long serialVersionUID = 1L;
-       
-	
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		
+
+	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
 		Consumidor cons = new Consumidor();
-		
+
 		try {
-			cons.create("middleware-queue-in");
+			cons.create("middleware-queue-out");
 			String res = cons.consultarPagos(1000);
 			cons.closeConnection();
 			String path = "/WEB-INF/views/home.jsp";
-			
 			request.setAttribute("respuesta", res);
-			
 			request.getRequestDispatcher(path).forward(request, response);
-			
 		} catch (JMSException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
 	}
 
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
 		doGet(request, response);
 	}
 

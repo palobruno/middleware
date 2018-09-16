@@ -13,43 +13,30 @@ import javax.jms.Session;
 import javax.jms.TextMessage;
 
 public class Consumidor {
-	
 	Connection connection;
 	MessageConsumer messageConsumer;
 
-	public void create(String queueName)
-		      throws JMSException {
+	public void create(String queueName) throws JMSException {
+		ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(ActiveMQConnection.DEFAULT_BROKER_URL);
+		this.connection = connectionFactory.createConnection();
+		Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
+		Queue queue = session.createQueue(queueName);
+		messageConsumer = session.createConsumer(queue);
+		connection.start();
+	}
 
-		    ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(ActiveMQConnection.DEFAULT_BROKER_URL);
-
-		    this.connection = connectionFactory.createConnection();
-
-		    Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
-		    
-		    Queue queue = session.createQueue(queueName);
-		    
-		    messageConsumer = session.createConsumer(queue);
-
-		    connection.start();
-		  }
-	
-	
 	public void closeConnection() throws JMSException {
-	    connection.close();
-	  }
-	
+		connection.close();
+	}
+
 	public String consultarPagos(int timeout) throws JMSException {
-		
 		Message message = messageConsumer.receive(timeout);
-		
 		String res = "No hay respuesta.";
 		if (message != null) {
 			TextMessage textMessage = (TextMessage) message;
 			res = textMessage.getText();
 			message.acknowledge();
 		}
-		
 		return res;
-		
 	}
 }

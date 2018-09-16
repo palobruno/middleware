@@ -23,9 +23,9 @@ public class CsvXmlTransformer {
 		String xmlResults = "";
 		String lineXml;
 		
-		for(String line: lines) {
-			lineXml = lineToXml(line);
-			xmlResults += lineXml + "\r\n";
+		for(int i = 0; i < lines.length; i++) {
+			lineXml = lineToXml(lines[i]);
+			xmlResults += (i < lines.length - 1) ? lineXml + "\n    " : lineXml;
 		}
 	
 		return MessageBuilder.withPayload(xmlResults).copyHeaders(csvResults.getHeaders()).build();
