@@ -1,0 +1,33 @@
+<paymentList>
+	<id>1234567891</id>
+    <payment>
+        <referenceNumber>123456789</referenceNumber>
+        <datetime>01/02/2003 01:02:03</datetime>
+        <currency>858</currency>
+        <amount>1234.56</amount>
+        <bank>1</bank>
+        <originAccout>123-123456</originAccout>
+        <destinationAccount>321-765432</destinationAccount>
+        <additionalInformation>Pago de haberes de 4.123.123-1</additionalInformation>
+    </payment>
+    <payment>
+        <referenceNumber>123456790</referenceNumber>
+        <datetime>02/03/2004 02:03:04</datetime>
+        <currency>848</currency>
+        <amount>2345.67</amount>
+        <bank>2</bank>
+        <originAccout>234-123456</originAccout>
+        <destinationAccount>432-765432</destinationAccount>
+        <additionalInformation>Pago de haberes de 4.234.234-2</additionalInformation>
+    </payment>
+    <payment>
+        <referenceNumber>123456791</referenceNumber>
+        <datetime>03/04/2005 03:04:05</datetime>
+        <currency>848</currency>
+        <amount>3456.78</amount>
+        <bank>3</bank>
+        <originAccout>345-123456</originAccout>
+        <destinationAccount>543-765432</destinationAccount>
+        <additionalInformation>Pago de haberes de 4.345.345-3</additionalInformation>
+    </payment>
+</paymentList>
