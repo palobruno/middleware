@@ -10,6 +10,7 @@
 	xmlns:int-file="http://www.springframework.org/schema/integration/file"
 	xmlns:int-jdbc="http://www.springframework.org/schema/integration/jdbc"
 	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xmlns:oxm="http://www.springframework.org/schema/oxm"
 	xsi:schemaLocation="
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
@@ -21,12 +22,11 @@
     	http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
     	http://www.springframework.org/schema/integration/file http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
     	http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd
-    	http://www.springframework.org/schema/integration/jdbc http://www.springframework.org/schema/integration/jdbc/spring-integration-jdbc.xsd">
-    	
-    	
-    	
-    	
+    	http://www.springframework.org/schema/integration/jdbc http://www.springframework.org/schema/integration/jdbc/spring-integration-jdbc.xsd
+    	http://www.springframework.org/schema/oxm http://www.springframework.org/schema/oxm/spring-oxm-3.0.xsd">
+
 	<!--  BEANS  -->
+
 	<bean id="dataSource"
         class="org.springframework.jdbc.datasource.DriverManagerDataSource">
         <property name="driverClassName" value="org.postgresql.Driver" />
@@ -72,13 +72,11 @@
 	<int:channel id="acmeDbChan" />
 	<int:channel id="dbGatewayChan" />
 	<int:channel id="inRouterChan" />
-	
-			
-
+	<int:channel id="newBankWsEnricher" />
 
 	<!--  TRANSFORMERS  -->
 	<int:transformer id="xmlToSoapTransformer" ref="xmlSoapTransformerBean" method="xmlToSoap"
-		input-channel="xmlToSoapTransformerChan" output-channel="newBankWsChan" />
+		input-channel="xmlToSoapTransformerChan" output-channel="newBankWsEnricher" />
 	
 	<int:transformer id="xmlToCsvTransformer" ref="xmlCsvTransformerBean" method="xmlToCsv"
 		input-channel="xmlToCsvTransformerChan" output-channel="fileWriteChan" />
@@ -91,6 +89,12 @@
 
 	<int:transformer id="dbToXmlTransformer" ref="xmlDbTransformerBean" method="dbToXml"
 		 input-channel="dbToXmlTransformerChan" output-channel="aggregatorChan" />
+		 
+	<int-ws:header-enricher input-channel="newBankWsEnricher" output-channel="newBankWsChan">
+		<int-ws:soap-action value="http://ws.middleware.net/PagosNewBankWS/makePaymentsRequest" />
+	</int-ws:header-enricher>
+	
+	<int-stream:stdout-channel-adapter id="testChannel" />
 		 
 	<int:header-enricher input-channel="newBankWsEnricherChannel" output-channel="normalizerRouterChan">
 		<int:header name="type" value="soap"/>
@@ -164,13 +168,12 @@
 	<int-jms:outbound-channel-adapter
 		id="colaPagosOutAdapter" destination="colaSalida"
 		channel="xmlPagosOutChan" />
-		
-	<int-ws:outbound-gateway id="newBankWsGateway"
+	
+	<int-ws:outbound-gateway
 		request-channel="newBankWsChan"
-		uri="http://localhost:8080/NewBankPagosWS/"
+		uri="http://localhost:8888/ws/newbank"
 		reply-channel="newBankWsEnricherChannel" />
 
-	
 	<int-file:outbound-gateway id="filesOutGateway"
 		request-channel="fileWriteChan"
 	    reply-channel="filesAggregatorChan"
