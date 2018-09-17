@@ -72,13 +72,11 @@
 	<int:channel id="acmeDbChan" />
 	<int:channel id="dbGatewayChan" />
 	<int:channel id="inRouterChan" />
-	
-			
-
+	<int:channel id="newBankWsEnricher" />
 
 	<!--  TRANSFORMERS  -->
 	<int:transformer id="xmlToSoapTransformer" ref="xmlSoapTransformerBean" method="xmlToSoap"
-		input-channel="xmlToSoapTransformerChan" output-channel="newBankWsChan" />
+		input-channel="xmlToSoapTransformerChan" output-channel="newBankWsEnricher" />
 	
 	<int:transformer id="xmlToCsvTransformer" ref="xmlCsvTransformerBean" method="xmlToCsv"
 		input-channel="xmlToCsvTransformerChan" output-channel="fileWriteChan" />
@@ -91,6 +89,12 @@
 
 	<int:transformer id="dbToXmlTransformer" ref="xmlDbTransformerBean" method="dbToXml"
 		 input-channel="dbToXmlTransformerChan" output-channel="aggregatorChan" />
+		 
+	<int-ws:header-enricher input-channel="newBankWsEnricher" output-channel="newBankWsChan">
+		<int-ws:soap-action value="http://ws.middleware.net/PagosNewBankWS/makePaymentsRequest" />
+	</int-ws:header-enricher>
+	
+	<int-stream:stdout-channel-adapter id="testChannel" />
 		 
 	<int:header-enricher input-channel="newBankWsEnricherChannel" output-channel="normalizerRouterChan">
 		<int:header name="type" value="soap"/>
@@ -164,16 +168,10 @@
 	<int-jms:outbound-channel-adapter
 		id="colaPagosOutAdapter" destination="colaSalida"
 		channel="xmlPagosOutChan" />
-		
-	<oxm:jaxb2-marshaller id="jaxb2Marshaller">
-		<oxm:class-to-be-bound name="com.acme.is.PagosNewBankRequest"/>
-	</oxm:jaxb2-marshaller>
 	
-	<int-ws:outbound-gateway id="newBankWsGateway"
+	<int-ws:outbound-gateway
 		request-channel="newBankWsChan"
-		uri="http://localhost:8080/NewBankPagosWS/"
-		marshaller="jaxb2Marshaller"
-		unmarshaller="jaxb2Marshaller"
+		uri="http://localhost:8888/ws/newbank"
 		reply-channel="newBankWsEnricherChannel" />
 
 	<int-file:outbound-gateway id="filesOutGateway"
